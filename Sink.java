@@ -2,10 +2,15 @@ import java.io.*;
 import java.net.*;
 
 public class Sink {
-    public static void main(String[] args) {
+    int port;
 
+    public Sink(int port) {
+	this.port = port;
+    }
+
+    public void run() {
 	try {
-	    ServerSocket serverSock = new ServerSocket(10000);
+	    ServerSocket serverSock = new ServerSocket(port);
 
 	    while (true) {
 		Socket sock = serverSock.accept();
@@ -15,6 +20,18 @@ public class Sink {
 	    System.out.println(e);
 	    System.exit(-1);
 	}
+    }
+
+    public static void main(String[] args) {
+	int port = 10000;
+
+	for (int i = 0; i < args.length; i++) {
+	    if ("-port".equals(args[i]))
+		port = Integer.parseInt(args[++i]);
+	}
+
+	Sink sink = new Sink(port);
+	sink.run();
     }
 }
 
@@ -34,14 +51,14 @@ class SinkThread extends Thread {
 	    int iter = in.readInt();
 	    byte[] buf = new byte[len];
 
-	    for (int i = 0; i < iter; i++) {
+	    for (int i = 0; i < iter; i++)
 		in.readFully(buf);
-	    }
+
 	    out.writeInt(0); /* sync */
 	    buf = null;
 	} catch (IOException e) {
 	    System.out.println(e);
-	    System.exit(-1);
+	    return;
 	}
     }
 }
