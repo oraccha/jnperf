@@ -1,3 +1,7 @@
+/*
+ * Sink.java
+ * Usage: java Sink [-port <port>]
+ */
 import java.io.*;
 import java.net.*;
 
@@ -47,18 +51,24 @@ class SinkThread extends Thread {
 	    DataInputStream in = new DataInputStream(sock.getInputStream());
 	    DataOutputStream out = new DataOutputStream(sock.getOutputStream());
 
-	    int len = in.readInt();
-	    int iter = in.readInt();
-	    byte[] buf = new byte[len];
+	    try {
+		int len = in.readInt();
+		int iter = in.readInt();
+		byte[] buf = new byte[len];
 
-	    for (int i = 0; i < iter; i++)
-		in.readFully(buf);
+		for (int i = 0; i < iter; i++)
+		    in.readFully(buf);
 
-	    out.writeInt(0); /* sync */
-	    buf = null;
+		out.writeInt(0); /* sync */
+
+		buf = null;
+	    } finally {
+		out.close();
+		in.close();
+		sock.close();
+	    }
 	} catch (IOException e) {
-	    System.out.println(e);
-	    return;
+	    e.printStackTrace();
 	}
     }
 }

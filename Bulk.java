@@ -1,3 +1,7 @@
+/*
+ * Bulk.java
+ * Usage: java Bulk [-port <port>] [-len <len1,len2,...>] [-iter <iter>] address
+ */
 import java.io.*;
 import java.net.*;
 
@@ -10,7 +14,7 @@ public class Bulk {
 	this.port = port;
     }
 
-    public long run(int len, int iter) {
+    public long run(int len, int iter) throws IOException {
 	byte[] buf = new byte[len];
 
 	for (int i = 0; i < len; i++) {
@@ -18,30 +22,31 @@ public class Bulk {
 	}
 
 	try {
-	    InetAddress sink = InetAddress.getByName(addr);
-	    Socket sock = new Socket(sink, port);
+	    Socket sock = new Socket(InetAddress.getByName(addr), port);
 	    DataInputStream in = new DataInputStream(sock.getInputStream());
 	    DataOutputStream out = new DataOutputStream(sock.getOutputStream());
+	    try {
+		out.writeInt(len);
+		out.writeInt(iter);
 
-	    out.writeInt(len);
-	    out.writeInt(iter);
+		long start = System.currentTimeMillis();
 
-	    long start = System.currentTimeMillis();
+		for (int i = 0; i < iter; i++)
+		    out.write(buf, 0, buf.length);
 
-	    for (int i = 0; i < iter; i++)
-		out.write(buf, 0, buf.length);
+		in.readInt(); /* sync */
+		out.flush();
 
-	    in.readInt(); /* sync */
-	    out.flush();
+		long end = System.currentTimeMillis();
 
-	    long end = System.currentTimeMillis();
-
-	    sock.close();
-	    return end - start;
+		return end - start;
+	    } finally {
+		out.close();
+		in.close();
+		sock.close();
+	    }
 	} catch (IOException e) {
-	    System.out.println(e);
-	    System.exit(-1);
-	    return 0; /* never here */
+	    throw e;
 	}
     }
 
@@ -65,24 +70,28 @@ public class Bulk {
 	    }
 	}
 
-	Bulk bulk = new Bulk(addr, port);
+	try {
+	    Bulk bulk = new Bulk(addr, port);
 
-	if (iter == 0)
-	    isest = true;
+	    if (iter == 0)
+		isest = true;
 
-	for (String l : lens) {
-	    int len = Integer.parseInt(l);
+	    for (String l : lens) {
+		int len = Integer.parseInt(l);
 
-	    if (isest) {
-		/* iter is roughly estimated at 10 seconds. */
-		elapse = bulk.run(len, 100);
-		iter = (int)Math.ceil(1000000d / (double)elapse);
+		if (isest) {
+		    /* iter is roughly estimated at 10 seconds. */
+		    elapse = bulk.run(len, 100);
+		    iter = (int)Math.ceil(1000000d / (double)elapse);
+		}
+
+		elapse = bulk.run(len, iter);
+		double bw = ((double)len * (double)iter * 1000.0d) / (double)elapse;
+		System.out.println(len + " " + iter + " " + bw + " Bytes/sec ("
+				   + elapse + " msec)");
 	    }
-
-	    elapse = bulk.run(len, iter);
-	    double bw = ((double)len * (double)iter * 1000.0d) / (double)elapse;
-	    System.out.println(len + " " + iter + " " + bw + " Bytes/sec ("
-			       + elapse + " msec)");
+	} catch (IOException e) {
+	    e.printStackTrace();
 	}
     }
 }
