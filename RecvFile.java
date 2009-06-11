@@ -1,5 +1,6 @@
 /*
- * SendFile.java
+ * RecvFile.java
+ * Usage: java RecvFile [-port <port>]
  */
 import java.io.*;
 import java.nio.*;
