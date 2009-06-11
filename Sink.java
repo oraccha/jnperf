@@ -32,6 +32,8 @@ public class Sink {
 	for (int i = 0; i < args.length; i++) {
 	    if ("-port".equals(args[i]))
 		port = Integer.parseInt(args[++i]);
+	    else
+		break;
 	}
 
 	Sink sink = new Sink(port);
